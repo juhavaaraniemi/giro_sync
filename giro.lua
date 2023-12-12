@@ -38,6 +38,7 @@ transport = 1
 ui_radius = 12
 group_play = true
 backup = 0
+event_queue = {}
 
 g = grid.connect()
 
@@ -512,50 +513,54 @@ function master_clock()
 end
 
 function clock_tick()
-  if loop[selected_loop].rec == 1 then
-    stop_other_loop_groups(selected_loop)
-    reset_loop_ends(selected_loop)
-    restart_loops(selected_loop)
-    rec_state(selected_loop)
-  elseif loop[selected_loop].ovr == 1 then
-    ovr_state(selected_loop)
-  elseif loop[selected_loop].play == 1 then
-    stop_other_loop_groups(selected_loop)
-    if loop[selected_loop].rec == 2 then
-      sync_loop_ends_to_master(selected_loop)
-      play_state(selected_loop)
-    elseif loop[selected_loop].stop == 2 then
-      if all_loops_stopped() then
-        restart_loops(selected_loop)
+  for _,v in pairs(event_queue) do
+    print(v)
+    if loop[v].rec == 1 then
+      stop_other_loop_groups(v)
+      reset_loop_ends(v)
+      restart_loops(v)
+      rec_state(v)
+    elseif loop[v].ovr == 1 then
+      ovr_state(v)
+    elseif loop[v].play == 1 then
+      stop_other_loop_groups(v)
+      if loop[v].rec == 2 then
+        sync_loop_ends_to_master(v)
+        play_state(v)
+      elseif loop[v].stop == 2 then
+        if all_loops_stopped() then
+          restart_loops(v)
+        end
+        if group_play then
+          sync_to_master(v)
+          for i=1,6 do
+            if loop[i].content and params:get(i.."group") == params:get(v.."group") then
+              play_state(i)
+            end
+          end
+        else
+          sync_to_master(v)
+          play_state(v)
+        end
+      end
+      play_state(v)
+    elseif loop[v].stop == 1 then
+      stop_other_loop_groups(v)
+      if loop[v].rec == 2 then
+        sync_loop_ends_to_master(v)
       end
       if group_play then
-        sync_to_master(selected_loop)
         for i=1,6 do
-          if loop[i].content and params:get(i.."group") == params:get(selected_loop.."group") then
-            play_state(i)
+          if params:get(i.."group") == params:get(v.."group") then
+            stop_state(i)
           end
         end
       else
-        sync_to_master(selected_loop)
-        play_state(selected_loop)
+        stop_state(v)
       end
-    end
-    play_state(selected_loop)
-  elseif loop[selected_loop].stop == 1 then
-    stop_other_loop_groups(selected_loop)
-    if loop[selected_loop].rec == 2 then
-      sync_loop_ends_to_master(selected_loop)
-    end
-    if group_play then
-      for i=1,6 do
-        if params:get(i.."group") == params:get(selected_loop.."group") then
-          stop_state(i)
-        end
-      end
-    else
-      stop_state(selected_loop)
     end
   end
+  event_queue = {}
 end
 
 --
@@ -724,6 +729,9 @@ function clear_state(selected)
 end
 
 function rec_press()
+  
+  table.insert(event_queue,selected_loop)
+  
   -- if loop is empty
   if not loop[selected_loop].content and is_master_loop(selected_loop) then
     loop[selected_loop].rec = 1
@@ -745,25 +753,30 @@ function rec_press()
 end 
 
 function play_press()
+  table.insert(event_queue,selected_loop)
   loop[selected_loop].play = 1
 end
 
 function stop_press()
+  table.insert(event_queue,selected_loop)
   loop[selected_loop].stop = 1
 end
 
 function stop_all_press()
   for i=1,6 do
+    table.insert(event_queue,i)
     stop_state(i)
   end
 end
 
 function clear_press()
+  table.insert(event_queue,selected_loop)
   clear_state(selected_loop)
   stop_state(selected_loop)
 end
 
 function undo_press()
+  table.insert(event_queue,selected_loop)
   if loop[selected_loop].content then
     if loop[selected_loop].play == 2 or loop[selected_loop].stop == 2 then
       if backup == selected_loop then
