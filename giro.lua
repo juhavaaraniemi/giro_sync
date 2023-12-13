@@ -34,7 +34,9 @@ rates = {-2.0,-1.0,-0.5,0.5,1.0,2.0}
 sync_modes = {"free","clocked"}
 sync_mode = 1
 time_denominators = {1,2,4,8,16}
-transport = 1
+transport = 0
+bar = 1
+beat = 1
 ui_radius = 12
 group_play = true
 backup = 0
@@ -389,7 +391,9 @@ function init()
   init_softcut()
   init_parameters()
   init_pset_callbacks()
-  clock.run(screen_redraw_clock)
+  --clock.run(screen_redraw_clock)
+  screen_redraw_metro = metro.init(screen_redraw_event,1/60,-1)
+  screen_redraw_metro:start()
   clock.run(grid_redraw_clock)
   clock.run(master_clock)
   --clock.run(beat_clock)
@@ -464,31 +468,30 @@ end
 -- CLOCK FUNCTIONS
 --
 
-function screen_redraw_clock()
-  while true do
-    clock.sleep(1/30) -- refresh at 30fps.
-    redraw()
-  end
+function screen_redraw_event()
+	ready = true
+end
+
+function refresh()
+	if ready then
+		redraw()
+		ready = false
+	end
 end
 
 function beat_clock()
-
-  print("transport: "..transport)
-
   while true do
     clock.sync(4/time_denominators[params:get("time_denominator")])
     transport = transport + 1
-    --print("transport: "..transport)
-    
-      if transport % params:get("time_numerator") == 0 then
-        --print("bar: "..transport/params:get("time_numerator"))
-        if params:get(selected_loop.."sync") == 2 then
-          clock_tick()
-        end
+    beat = beat + 1
+    if transport % params:get("time_numerator") == 0 then
+      if params:get(selected_loop.."sync") == 2 then
+        clock_tick()
       end
-    
+      beat = 1
+      bar = bar + 1
+    end
     restart_loops_to_beat_clock()
-
   end
 end
 
@@ -514,7 +517,6 @@ end
 
 function clock_tick()
   for _,v in pairs(event_queue) do
-    print(v)
     if loop[v].rec == 1 then
       stop_other_loop_groups(v)
       reset_loop_ends(v)
@@ -938,7 +940,20 @@ end
 --
 function redraw()
   screen.clear()
-  
+  -- transport
+  screen.level(15)
+  --screen.move(10,6)
+  --screen.text(transport)
+  for i=1,params:get("time_numerator") do
+    if i == beat then
+      screen.rect(i*6-1,0,4,4)
+      screen.fill()
+    else
+      screen.rect(i*6,1,3,3)
+      screen.stroke()
+    end
+  end
+  --screen.stroke()
   --  group play
   if group_play then
     screen.level(15)
