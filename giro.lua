@@ -469,14 +469,14 @@ end
 --
 
 function screen_redraw_event()
-	ready = true
+  ready = true
 end
 
 function refresh()
-	if ready then
-		redraw()
-		ready = false
-	end
+  if ready then
+    redraw()
+    ready = false
+  end
 end
 
 function beat_clock()
@@ -534,14 +534,13 @@ function clock_tick()
           restart_loops(v)
         end
         if group_play then
-          sync_to_master(v)
           for i=1,6 do
             if loop[i].content and params:get(i.."group") == params:get(v.."group") then
               play_state(i)
             end
           end
         else
-          sync_to_master(v)
+          wait_for_master(v)
           play_state(v)
         end
       end
@@ -772,7 +771,7 @@ function stop_all_press()
 end
 
 function clear_press()
-  table.insert(event_queue,selected_loop)
+  --table.insert(event_queue,selected_loop)
   clear_state(selected_loop)
   stop_state(selected_loop)
 end
@@ -808,9 +807,12 @@ function all_loops_stopped()
   return true
 end
 
-function sync_to_master(selected)
+function wait_for_master(selected)
   if not is_master_loop(selected) and loop[params:get(selected.."master")].play == 2 then
-    softcut.position(selected,loop[selected].loop_start+loop[params:get(selected.."master")].position-loop[params:get(selected.."master")].loop_start)
+    while loop[params:get(selected.."master")].position ~= loop[params:get(selected.."master")].loop_start do
+      clock.sleep(0.01)
+    end
+    softcut.position(selected,loop[selected].loop_start)
   end
 end
 
