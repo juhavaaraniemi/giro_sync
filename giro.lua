@@ -1,5 +1,5 @@
 -- Giro
--- v1.0.2 @JulesV
+-- v1.1 @JulesV
 -- https://llllllll.co/t/giro/
 -- 
 -- (a)sync looping
@@ -530,7 +530,7 @@ function clock_tick()
         sync_loop_ends_to_master(v)
         play_state(v)
       elseif loop[v].stop == 2 then
-        if all_loops_stopped() then
+        if master_loop_stopped(v) then
           restart_loops(v)
         end
         if group_play then
@@ -760,7 +760,9 @@ end
 
 function stop_press()
   table.insert(event_queue,selected_loop)
-  loop[selected_loop].stop = 1
+  if loop[selected_loop].stop ~= 2 then
+    loop[selected_loop].stop = 1
+  end
 end
 
 function stop_all_press()
@@ -798,13 +800,11 @@ function is_master_loop(selected)
   end
 end
 
-function all_loops_stopped()
-  for i=1,6 do
-    if loop[i].stop ~= 2 then
-      return false
-    end
+function master_loop_stopped(selected)
+  if loop[params:get(selected.."master")].stop == 2 then
+    return true
   end
-  return true
+  return false
 end
 
 function wait_for_master(selected)
