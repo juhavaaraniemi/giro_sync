@@ -36,7 +36,7 @@ sync_mode = 1
 time_denominators = {1,2,4,8,16}
 transport = 0
 bar = 1
-beat = 1
+beat = 0
 ui_radius = 12
 group_play = true
 backup = 0
@@ -391,12 +391,11 @@ function init()
   init_softcut()
   init_parameters()
   init_pset_callbacks()
-  --clock.run(screen_redraw_clock)
   screen_redraw_metro = metro.init(screen_redraw_event,1/60,-1)
   screen_redraw_metro:start()
-  clock.run(grid_redraw_clock)
+  grid_redraw_metro = metro.init(grid_redraw_event,1/30,-1)
+  grid_redraw_metro:start()
   clock.run(master_clock)
-  --clock.run(beat_clock)
 end
 
 --
@@ -412,7 +411,9 @@ end
 
 function clock.transport.stop()
   clock.cancel(bc)
-  transport = 1
+  transport = 0
+  beat = 1
+  bar = 1
 end
 
 function init_pset_callbacks()
@@ -480,6 +481,10 @@ function refresh()
 end
 
 function beat_clock()
+  clock.sync(4/time_denominators[params:get("time_denominator")])
+  transport = 0
+  beat = 1
+  bar = 1
   while true do
     clock.sync(4/time_denominators[params:get("time_denominator")])
     transport = transport + 1
@@ -495,14 +500,11 @@ function beat_clock()
   end
 end
 
-function grid_redraw_clock()
-  while true do
-    clock.sleep(1/30) -- refresh at 30fps.
-    update_grid_variables()
-    if grid_dirty then
-      grid_redraw()
-      grid_dirty = false
-    end
+function grid_redraw_event()
+  update_grid_variables()
+  if grid_dirty then
+    grid_redraw()
+    grid_dirty = false
   end
 end
 
