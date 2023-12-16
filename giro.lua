@@ -480,6 +480,23 @@ function refresh()
   end
 end
 
+function grid_redraw_event()
+  update_grid_variables()
+  if grid_dirty then
+    grid_redraw()
+    grid_dirty = false
+  end
+end
+
+function master_clock()
+  while true do
+    clock.sleep(CLOCK_INTERVAL)
+    if params:get(selected_loop.."sync") == 1 then
+      clock_tick()
+    end
+  end
+end
+
 function beat_clock()
   clock.sync(4/time_denominators[params:get("time_denominator")])
   transport = 0
@@ -497,23 +514,6 @@ function beat_clock()
       bar = bar + 1
     end
     restart_loops_to_beat_clock()
-  end
-end
-
-function grid_redraw_event()
-  update_grid_variables()
-  if grid_dirty then
-    grid_redraw()
-    grid_dirty = false
-  end
-end
-
-function master_clock()
-  while true do
-    clock.sleep(CLOCK_INTERVAL)
-    if params:get(selected_loop.."sync") == 1 then
-      clock_tick()
-    end
   end
 end
 
