@@ -36,7 +36,7 @@ sync_mode = 1
 time_denominators = {1,2,4,8,16}
 transport = 0
 bar = 1
-beat = 0
+beat = 1
 ui_radius = 12
 group_play = true
 backup = 0
@@ -292,7 +292,7 @@ function init_parameters()
     id="time_numerator",
     name="time numerator",
     min=1,
-    max=99,
+    max=16,
     default=4,
     action=function(value)
       print("beats in sec: "..clock.get_beat_sec()*params:get("time_numerator")*4/time_denominators[params:get("time_denominator")])
@@ -410,6 +410,7 @@ function clock.transport.start()
 end
 
 function clock.transport.stop()
+  stop_all_press()
   clock.cancel(bc)
   transport = 0
   beat = 1
@@ -480,6 +481,28 @@ function refresh()
   end
 end
 
+function beat_clock()
+  if params:get("clock_source") == "link" then
+    clock.sync(4/time_denominators[params:get("time_denominator")])
+    transport = 0
+    beat = 1
+    bar = 1
+  end
+  while true do
+    clock.sync(4/time_denominators[params:get("time_denominator")])
+    transport = transport + 1
+    beat = beat + 1
+    if transport % params:get("time_numerator") == 0 then
+      if params:get(selected_loop.."sync") == 2 then
+        clock_tick()
+      end
+      beat = 1
+      bar = bar + 1
+    end
+    restart_loops_to_beat_clock()
+  end
+end
+
 function grid_redraw_event()
   update_grid_variables()
   if grid_dirty then
@@ -494,26 +517,6 @@ function master_clock()
     if params:get(selected_loop.."sync") == 1 then
       clock_tick()
     end
-  end
-end
-
-function beat_clock()
-  clock.sync(4/time_denominators[params:get("time_denominator")])
-  transport = 0
-  beat = 1
-  bar = 1
-  while true do
-    clock.sync(4/time_denominators[params:get("time_denominator")])
-    transport = transport + 1
-    beat = beat + 1
-    if transport % params:get("time_numerator") == 0 then
-      if params:get(selected_loop.."sync") == 2 then
-        clock_tick()
-      end
-      beat = 1
-      bar = bar + 1
-    end
-    restart_loops_to_beat_clock()
   end
 end
 
@@ -957,7 +960,6 @@ function redraw()
       screen.stroke()
     end
   end
-  --screen.stroke()
   --  group play
   if group_play then
     screen.level(15)
