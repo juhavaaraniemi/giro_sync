@@ -482,7 +482,8 @@ function refresh()
 end
 
 function beat_clock()
-  if params:get("clock_source") == "link" then
+  if params:string("clock_source") == "link" then
+    print("linking")
     clock.sync(4/time_denominators[params:get("time_denominator")])
     transport = 0
     beat = 1
